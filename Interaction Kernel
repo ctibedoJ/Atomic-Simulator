@@ -1,0 +1,76 @@
+If desiring to modify engine for full production of 
+Atomic Synthensis environemnts, the following insertion will make the following predictions:
+
+​Covalent Bonds: Using the \phi^{-2/3} scalar we proved.
+​Nuclear Resonances: Using the Z=28, 50 invariants.
+​Alloys: Predicting "Magic Number" stability (like Nitinol).
+
+[Placement: ​Add this method to class & call it inside simulate() right before print summary
+    
+    def scan_interactions(self, environment):
+        """
+        THE GEOMETRIC INTERACTION KERNEL
+        Predicts Bonds, Molecules, and Alloys from D4 Invariants.
+        """
+        print("\nINTERACTION MATRIX (Predicted Resonances)")
+        print("A + B       | Type           | Length (Å) | Stability Note")
+        print("-" * 65)
+        
+        # Get list of unique Z present in the simulation
+        zs = sorted(environment.keys())
+        
+        # Scan every unique pair (including self-interaction like H-H)
+        interactions_found = False
+        
+        for i in range(len(zs)):
+            for j in range(i, len(zs)):
+                z_a = zs[i]
+                z_b = zs[j]
+                
+                # 1. THE D4 INVARIANT CHECK (Nuclear/Alloy Stability)
+                # Does Z_a + Z_b hit a Magic Number (28, 50, 82)?
+                total_z = z_a + z_b
+                is_invariant = total_z in [28, 50, 82, 126]
+                
+                # 2. THE VALENCE CHECK (Chemical Bonding)
+                # Simple D4 valence: (Z-2) % 8. 
+                # If v1 + v2 = 8 (or 2 for H), it's a stable bond.
+                v_a = (z_a - 2) % 8 if z_a > 2 else z_a
+                v_b = (z_b - 2) % 8 if z_b > 2 else z_b
+                
+                bond_type = None
+                
+                # H-H Case (Sum=2)
+                if z_a == 1 and z_b == 1:
+                    bond_type = "Covalent (Sigma)"
+                # Octet Case (Sum=8)
+                elif (v_a + v_b) == 8:
+                    bond_type = "Ionic/Covalent (Octet)"
+                # Invariant Case (Nuclear/Lattice)
+                elif is_invariant:
+                    bond_type = "D4 Lattice Resonance"
+                
+                if bond_type:
+                    interactions_found = True
+                    
+                    # 3. THE PHI-METRIC SCALING (Bond Length)
+                    # L = (r_A + r_B) * Phi^(-2/3)
+                    r_a = environment[z_a]['params']['r_cov']
+                    r_b = environment[z_b]['params']['r_cov']
+                    
+                    # Apply the Universal Scalar S = 0.7265
+                    S = self.phi ** (-2/3)
+                    
+                    # If it's a Lattice Resonance (Invariant), it's tighter (Phi^-1)
+                    scaling = self.phi**(-1) if is_invariant else S
+                    
+                    bond_len = (r_a + r_b) * scaling
+                    
+                    # Formatting output
+                    pair_str = f"Z{z_a} + Z{z_b}"
+                    note = f"Sum Z={total_z}" if is_invariant else "Valence Match"
+                    
+                    print(f"{pair_str:<11} | {bond_type:<14} | {bond_len:<10.3f} | {note}")
+        
+        if not interactions_found:
+            print("No geometric resonances detected (Inert Gas / Plasma).")
